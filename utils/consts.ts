@@ -1,7 +1,7 @@
 export const defaultHTML = `<!DOCTYPE html>
 <html>
   <head>
-    <title>My app</title>
+    <title>Mi aplicación</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta charset="utf-8">
     <style>
@@ -32,8 +32,8 @@ export const defaultHTML = `<!DOCTYPE html>
   </head>
   <body>
     <h1>
-      <span>I'm ready to work,</span><br />
-      Ask me anything.
+      <span>Estoy listo para trabajar,</span><br />
+      Pregúntame lo que sea.
     </h1>
     <img src="https://enzostvs-deepsite.hf.space/arrow.svg" class="arrow" />
     <script></script>

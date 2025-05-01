@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import fs from "fs";
 import {
   createRepo,
   uploadFiles,
@@ -368,7 +369,17 @@ app.post("/api/ask-ai", async (req, res) => {
         res.end();
       }
     }
-  } else if (selectedProvider.id === "openai" || selectedProvider.id === "deepseek" || selectedProvider.id === "openrouter") {
+  } else if (
+    selectedProvider.id === "openai" ||
+    selectedProvider.id === "deepseek" ||
+    selectedProvider.id === "openrouter" ||
+    selectedProvider.id === "anthropic" ||
+    selectedProvider.id === "together" ||
+    selectedProvider.id === "groq" ||
+    selectedProvider.id === "deepinfra" ||
+    selectedProvider.id === "mistral" ||
+    selectedProvider.id === "cohere"
+  ) {
     try {
       const response = await fetch(`${selectedProvider.base_url}/chat/completions`, {
         method: "POST",
@@ -617,6 +628,326 @@ app.get("/api/remix/:username/:repo", async (req, res) => {
     });
   }
 });
+// Rutas para proyectos locales
+const PROJECTS_DIR = path.join(__dirname, "projects");
+
+// Asegurarse de que la carpeta de proyectos exista
+if (!fs.existsSync(PROJECTS_DIR)) {
+  fs.mkdirSync(PROJECTS_DIR, { recursive: true });
+}
+
+// Guardar proyecto localmente
+app.post("/api/save-local", async (req, res) => {
+  const { html, title, assets } = req.body;
+
+  if (!html || !title) {
+    return res.status(400).send({
+      ok: false,
+      message: "Faltan campos requeridos (html y title)",
+    });
+  }
+
+  try {
+    // Crear un ID único para el proyecto basado en el título y la fecha
+    const projectId = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
+    const projectDir = path.join(PROJECTS_DIR, projectId);
+
+    // Crear la carpeta del proyecto
+    fs.mkdirSync(projectDir, { recursive: true });
+
+    // Guardar el archivo HTML principal
+    fs.writeFileSync(path.join(projectDir, "index.html"), html);
+
+    // Guardar metadatos del proyecto
+    const metadata = {
+      title,
+      createdAt: new Date().toISOString(),
+      id: projectId
+    };
+    fs.writeFileSync(path.join(projectDir, "metadata.json"), JSON.stringify(metadata, null, 2));
+
+    // Guardar assets si existen
+    if (assets && Array.isArray(assets)) {
+      const assetsDir = path.join(projectDir, "assets");
+      fs.mkdirSync(assetsDir, { recursive: true });
+
+      for (const asset of assets) {
+        if (asset.content && asset.filename) {
+          fs.writeFileSync(path.join(assetsDir, asset.filename), asset.content);
+        }
+      }
+    }
+
+    return res.status(200).send({
+      ok: true,
+      projectId,
+      message: "Proyecto guardado localmente con éxito"
+    });
+  } catch (error) {
+    console.error("Error al guardar el proyecto localmente:", error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al guardar el proyecto localmente"
+    });
+  }
+});
+
+// Listar todos los proyectos locales
+app.get("/api/local-projects", (req, res) => {
+  try {
+    const projects = [];
+
+    // Leer todos los directorios en la carpeta de proyectos
+    const projectDirs = fs.readdirSync(PROJECTS_DIR);
+
+    for (const dir of projectDirs) {
+      const metadataPath = path.join(PROJECTS_DIR, dir, "metadata.json");
+
+      if (fs.existsSync(metadataPath)) {
+        const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+        projects.push(metadata);
+      }
+    }
+
+    // Ordenar por fecha de creación (más reciente primero)
+    projects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return res.status(200).send({
+      ok: true,
+      projects
+    });
+  } catch (error) {
+    console.error("Error al listar proyectos locales:", error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al listar proyectos locales"
+    });
+  }
+});
+
+// Obtener un proyecto local específico
+app.get("/api/local-projects/:projectId", (req, res) => {
+  const { projectId } = req.params;
+  const projectDir = path.join(PROJECTS_DIR, projectId);
+
+  try {
+    if (!fs.existsSync(projectDir)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Proyecto no encontrado"
+      });
+    }
+
+    const metadataPath = path.join(projectDir, "metadata.json");
+    const htmlPath = path.join(projectDir, "index.html");
+
+    if (!fs.existsSync(metadataPath) || !fs.existsSync(htmlPath)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Archivos del proyecto no encontrados"
+      });
+    }
+
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
+    const html = fs.readFileSync(htmlPath, "utf8");
+
+    // Listar assets si existen
+    const assetsDir = path.join(projectDir, "assets");
+    let assets = [];
+
+    if (fs.existsSync(assetsDir)) {
+      const assetFiles = fs.readdirSync(assetsDir);
+      assets = assetFiles.map(file => ({
+        filename: file,
+        path: `/api/local-projects/${projectId}/assets/${file}`
+      }));
+    }
+
+    return res.status(200).send({
+      ok: true,
+      project: {
+        ...metadata,
+        html,
+        assets
+      }
+    });
+  } catch (error) {
+    console.error(`Error al obtener el proyecto ${projectId}:`, error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al obtener el proyecto"
+    });
+  }
+});
+
+// Obtener un archivo específico de un proyecto
+app.get("/api/local-projects/:projectId/assets/:filename", (req, res) => {
+  const { projectId, filename } = req.params;
+  const filePath = path.join(PROJECTS_DIR, projectId, "assets", filename);
+
+  try {
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Archivo no encontrado"
+      });
+    }
+
+    return res.sendFile(filePath);
+  } catch (error) {
+    console.error(`Error al obtener el archivo ${filename}:`, error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al obtener el archivo"
+    });
+  }
+});
+
+// Listar todos los archivos de un proyecto
+app.get("/api/local-projects/:projectId/files", (req, res) => {
+  const { projectId } = req.params;
+  const projectDir = path.join(PROJECTS_DIR, projectId);
+
+  try {
+    if (!fs.existsSync(projectDir)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Proyecto no encontrado"
+      });
+    }
+
+    const files = [];
+
+    // Añadir el archivo HTML principal
+    const htmlPath = path.join(projectDir, "index.html");
+    if (fs.existsSync(htmlPath)) {
+      files.push({
+        name: "index.html",
+        path: `/api/local-projects/${projectId}/download/index.html`,
+        type: "html",
+        size: fs.statSync(htmlPath).size
+      });
+    }
+
+    // Añadir los metadatos
+    const metadataPath = path.join(projectDir, "metadata.json");
+    if (fs.existsSync(metadataPath)) {
+      files.push({
+        name: "metadata.json",
+        path: `/api/local-projects/${projectId}/download/metadata.json`,
+        type: "json",
+        size: fs.statSync(metadataPath).size
+      });
+    }
+
+    // Añadir assets si existen
+    const assetsDir = path.join(projectDir, "assets");
+    if (fs.existsSync(assetsDir)) {
+      const assetFiles = fs.readdirSync(assetsDir);
+
+      for (const file of assetFiles) {
+        const filePath = path.join(assetsDir, file);
+        const stat = fs.statSync(filePath);
+
+        files.push({
+          name: file,
+          path: `/api/local-projects/${projectId}/download/assets/${file}`,
+          type: path.extname(file).substring(1) || "unknown",
+          size: stat.size
+        });
+      }
+    }
+
+    return res.status(200).send({
+      ok: true,
+      files
+    });
+  } catch (error) {
+    console.error(`Error al listar archivos del proyecto ${projectId}:`, error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al listar archivos del proyecto"
+    });
+  }
+});
+
+// Descargar un archivo específico de un proyecto
+app.get("/api/local-projects/:projectId/download/:filename", (req, res) => {
+  const { projectId, filename } = req.params;
+  const filePath = path.join(PROJECTS_DIR, projectId, filename);
+
+  try {
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Archivo no encontrado"
+      });
+    }
+
+    return res.download(filePath);
+  } catch (error) {
+    console.error(`Error al descargar el archivo ${filename}:`, error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al descargar el archivo"
+    });
+  }
+});
+
+// Descargar un asset específico de un proyecto
+app.get("/api/local-projects/:projectId/download/assets/:filename", (req, res) => {
+  const { projectId, filename } = req.params;
+  const filePath = path.join(PROJECTS_DIR, projectId, "assets", filename);
+
+  try {
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Archivo no encontrado"
+      });
+    }
+
+    return res.download(filePath);
+  } catch (error) {
+    console.error(`Error al descargar el asset ${filename}:`, error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al descargar el asset"
+    });
+  }
+});
+
+// Descargar todo el proyecto como ZIP
+app.get("/api/local-projects/:projectId/download-zip", (req, res) => {
+  const { projectId } = req.params;
+  const projectDir = path.join(PROJECTS_DIR, projectId);
+
+  try {
+    if (!fs.existsSync(projectDir)) {
+      return res.status(404).send({
+        ok: false,
+        message: "Proyecto no encontrado"
+      });
+    }
+
+    // Aquí implementaríamos la creación del archivo ZIP
+    // Por simplicidad, esto requeriría una biblioteca adicional como 'archiver'
+    // Por ahora, devolvemos un mensaje indicando que esta funcionalidad está pendiente
+
+    return res.status(501).send({
+      ok: false,
+      message: "Funcionalidad de descarga ZIP pendiente de implementar"
+    });
+  } catch (error) {
+    console.error(`Error al crear ZIP del proyecto ${projectId}:`, error);
+    return res.status(500).send({
+      ok: false,
+      message: error.message || "Error al crear ZIP del proyecto"
+    });
+  }
+});
+
+// Ruta para servir la aplicación React
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });

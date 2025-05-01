@@ -18,6 +18,7 @@ import Tabs from "./tabs/tabs";
 import AskAI from "./ask-ai/ask-ai";
 import { Auth } from "./../../utils/types";
 import Preview from "./preview/preview";
+import LocalProjects from "./local-projects/local-projects";
 
 function App() {
   const [htmlStorage, , removeHtmlStorage] = useLocalStorage("html_content");
@@ -36,6 +37,7 @@ function App() {
   const [currentView, setCurrentView] = useState<"editor" | "preview">(
     "editor"
   );
+  const [showLocalProjects, setShowLocalProjects] = useState(false);
   const [prompts, setPrompts] = useState<string[]>([]);
 
   const fetchMe = async () => {
@@ -168,11 +170,11 @@ function App() {
       <Header
         onReset={() => {
           if (isAiWorking) {
-            toast.warn("Please wait for the AI to finish working.");
+            toast.warn("Por favor, espera a que la IA termine de trabajar.");
             return;
           }
           if (
-            window.confirm("You're about to reset the editor. Are you sure?")
+            window.confirm("Estás a punto de reiniciar el editor. ¿Estás seguro?")
           ) {
             setHtml(defaultHTML);
             setError(false);
@@ -181,6 +183,13 @@ function App() {
               editorRef.current?.getModel()?.getLineCount() ?? 0
             );
           }
+        }}
+        onOpenLocalProjects={() => {
+          if (isAiWorking) {
+            toast.warn("Por favor, espera a que la IA termine de trabajar.");
+            return;
+          }
+          setShowLocalProjects(true);
         }}
       >
         <DeployButton
@@ -191,6 +200,14 @@ function App() {
           prompts={prompts}
         />
       </Header>
+
+      {showLocalProjects && (
+        <LocalProjects
+          html={html}
+          setHtml={setHtml}
+          onClose={() => setShowLocalProjects(false)}
+        />
+      )}
       <main className="max-lg:flex-col flex w-full">
         <div
           ref={editor}

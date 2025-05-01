@@ -1,13 +1,15 @@
 import { ReactNode } from "react";
-import { MdAdd } from "react-icons/md";
+import { MdAdd, MdFolderOpen } from "react-icons/md";
 
 import Logo from "@/assets/logo.svg";
 
 function Header({
   onReset,
+  onOpenLocalProjects,
   children,
 }: {
   onReset: () => void;
+  onOpenLocalProjects: () => void;
   children?: ReactNode;
 }) {
   return (
@@ -27,10 +29,17 @@ function Header({
           onClick={onReset}
         >
           <MdAdd className="mr-1 text-base" />
-          New
+          Nuevo
+        </button>
+        <button
+          className="max-md:hidden relative cursor-pointer flex-none flex items-center justify-center rounded-md text-xs font-semibold leading-4 py-1.5 px-3 hover:bg-gray-700 text-gray-100 shadow-sm dark:shadow-highlight/20 bg-gray-800"
+          onClick={onOpenLocalProjects}
+        >
+          <MdFolderOpen className="mr-1 text-base" />
+          Proyectos
         </button>
         <p className="text-gray-500 text-sm max-md:hidden">
-          Imagine and Share in 1-Click
+          Crea y guarda proyectos localmente
         </p>
       </div>
       {children}

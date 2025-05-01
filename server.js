@@ -142,7 +142,29 @@ app.post("/api/deploy", checkUser, async (req, res) => {
     hf_token = process.env.HF_TOKEN;
   }
 
+  // Verificar que el token existe
+  if (!hf_token) {
+    return res.status(401).send({
+      ok: false,
+      message: "No se encontró un token de Hugging Face. Por favor, inicia sesión nuevamente.",
+    });
+  }
+
   try {
+    console.log("Iniciando despliegue a Hugging Face Space...");
+
+    // Verificar que el token es válido
+    try {
+      const userInfo = await whoAmI({ accessToken: hf_token });
+      console.log("Usuario autenticado:", userInfo.name);
+    } catch (authError) {
+      console.error("Error de autenticación:", authError);
+      return res.status(401).send({
+        ok: false,
+        message: "Token de Hugging Face inválido o expirado. Por favor, inicia sesión nuevamente.",
+      });
+    }
+
     const repo = {
       type: "space",
       name: path ?? "",
@@ -152,6 +174,7 @@ app.post("/api/deploy", checkUser, async (req, res) => {
     let newHtml = html;
 
     if (!path || path === "") {
+      console.log("Creando nuevo espacio...");
       const { name: username } = await whoAmI({ accessToken: hf_token });
       const newTitle = title
         .toLowerCase()
@@ -164,10 +187,21 @@ app.post("/api/deploy", checkUser, async (req, res) => {
       const repoId = `${username}/${newTitle}`;
       repo.name = repoId;
 
-      await createRepo({
-        repo,
-        accessToken: hf_token,
-      });
+      console.log("Creando repositorio:", repoId);
+      try {
+        await createRepo({
+          repo,
+          accessToken: hf_token,
+        });
+        console.log("Repositorio creado con éxito");
+      } catch (repoError) {
+        console.error("Error al crear repositorio:", repoError);
+        return res.status(500).send({
+          ok: false,
+          message: `Error al crear el repositorio: ${repoError.message}`,
+        });
+      }
+
       const colorFrom = COLORS[Math.floor(Math.random() * COLORS.length)];
       const colorTo = COLORS[Math.floor(Math.random() * COLORS.length)];
       readme = `---
@@ -182,6 +216,8 @@ tags:
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference`;
+    } else {
+      console.log("Actualizando espacio existente:", path);
     }
 
     newHtml = html.replace(/<\/body>/, `${getPTag(repo.name)}</body>`);
@@ -199,16 +235,30 @@ Check out the configuration reference at https://huggingface.co/docs/hub/spaces-
       readmeFile.name = "README.md"; // Add name property to the Blob
       files.push(readmeFile);
     }
-    await uploadFiles({
-      repo,
-      files,
-      accessToken: hf_token,
-    });
+
+    console.log("Subiendo archivos...");
+    try {
+      await uploadFiles({
+        repo,
+        files,
+        accessToken: hf_token,
+      });
+      console.log("Archivos subidos con éxito");
+    } catch (uploadError) {
+      console.error("Error al subir archivos:", uploadError);
+      return res.status(500).send({
+        ok: false,
+        message: `Error al subir archivos: ${uploadError.message}`,
+      });
+    }
+
+    console.log("Despliegue completado con éxito");
     return res.status(200).send({ ok: true, path: repo.name });
   } catch (err) {
+    console.error("Error general en el despliegue:", err);
     return res.status(500).send({
       ok: false,
-      message: err.message,
+      message: `Error en el despliegue: ${err.message}`,
     });
   }
 });
@@ -730,52 +780,89 @@ app.get("/api/local-projects/:projectId", (req, res) => {
   const { projectId } = req.params;
   const projectDir = path.join(PROJECTS_DIR, projectId);
 
+  console.log(`Solicitud para cargar proyecto: ${projectId}`);
+  console.log(`Directorio del proyecto: ${projectDir}`);
+
   try {
+    // Verificar si el directorio del proyecto existe
     if (!fs.existsSync(projectDir)) {
+      console.error(`Directorio del proyecto no encontrado: ${projectDir}`);
       return res.status(404).send({
         ok: false,
         message: "Proyecto no encontrado"
       });
     }
 
+    // Verificar si los archivos necesarios existen
     const metadataPath = path.join(projectDir, "metadata.json");
     const htmlPath = path.join(projectDir, "index.html");
 
-    if (!fs.existsSync(metadataPath) || !fs.existsSync(htmlPath)) {
+    console.log(`Ruta del archivo metadata: ${metadataPath}`);
+    console.log(`Ruta del archivo HTML: ${htmlPath}`);
+
+    const metadataExists = fs.existsSync(metadataPath);
+    const htmlExists = fs.existsSync(htmlPath);
+
+    console.log(`¿Existe metadata?: ${metadataExists}`);
+    console.log(`¿Existe HTML?: ${htmlExists}`);
+
+    if (!metadataExists || !htmlExists) {
       return res.status(404).send({
         ok: false,
-        message: "Archivos del proyecto no encontrados"
+        message: `Archivos del proyecto no encontrados. Metadata: ${metadataExists}, HTML: ${htmlExists}`
       });
     }
 
-    const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
-    const html = fs.readFileSync(htmlPath, "utf8");
+    // Leer los archivos
+    try {
+      const metadataContent = fs.readFileSync(metadataPath, "utf8");
+      console.log(`Contenido de metadata: ${metadataContent.substring(0, 100)}...`);
 
-    // Listar assets si existen
-    const assetsDir = path.join(projectDir, "assets");
-    let assets = [];
+      const metadata = JSON.parse(metadataContent);
+      console.log(`Metadata parseada correctamente:`, metadata);
 
-    if (fs.existsSync(assetsDir)) {
-      const assetFiles = fs.readdirSync(assetsDir);
-      assets = assetFiles.map(file => ({
-        filename: file,
-        path: `/api/local-projects/${projectId}/assets/${file}`
-      }));
-    }
+      const html = fs.readFileSync(htmlPath, "utf8");
+      console.log(`HTML leído correctamente (longitud): ${html.length}`);
 
-    return res.status(200).send({
-      ok: true,
-      project: {
-        ...metadata,
-        html,
-        assets
+      // Listar assets si existen
+      const assetsDir = path.join(projectDir, "assets");
+      let assets = [];
+
+      if (fs.existsSync(assetsDir)) {
+        console.log(`Directorio de assets encontrado: ${assetsDir}`);
+        const assetFiles = fs.readdirSync(assetsDir);
+        console.log(`Assets encontrados: ${assetFiles.length}`);
+
+        assets = assetFiles.map(file => ({
+          filename: file,
+          path: `/api/local-projects/${projectId}/assets/${file}`
+        }));
+      } else {
+        console.log(`No se encontró directorio de assets`);
       }
-    });
+
+      // Enviar respuesta
+      console.log(`Enviando respuesta exitosa`);
+      return res.status(200).send({
+        ok: true,
+        project: {
+          ...metadata,
+          html,
+          assets
+        }
+      });
+    } catch (readError) {
+      console.error(`Error al leer archivos del proyecto:`, readError);
+      return res.status(500).send({
+        ok: false,
+        message: `Error al leer archivos del proyecto: ${readError.message}`
+      });
+    }
   } catch (error) {
-    console.error(`Error al obtener el proyecto ${projectId}:`, error);
+    console.error(`Error general al obtener el proyecto ${projectId}:`, error);
     return res.status(500).send({
       ok: false,
-      message: error.message || "Error al obtener el proyecto"
+      message: `Error al obtener el proyecto: ${error.message}`
     });
   }
 });

@@ -49,6 +49,14 @@ function DeployButton({
     setLoading(true);
 
     try {
+      console.log("Deploying to Hugging Face Space...");
+      console.log("Data:", {
+        title: config.title,
+        path,
+        htmlLength: html.length,
+        promptsCount: prompts.length,
+      });
+
       const request = await fetch("/api/deploy", {
         method: "POST",
         body: JSON.stringify({
@@ -61,22 +69,39 @@ function DeployButton({
           "Content-Type": "application/json",
         },
       });
-      const response = await request.json();
-      if (response.ok) {
-        toast.success(
-          <MsgToast
-            url={`https://huggingface.co/spaces/${response.path ?? path}`}
-          />,
-          {
-            autoClose: 10000,
-          }
-        );
-        setPath(response.path);
+
+      // Verificar si la respuesta es JSON
+      const contentType = request.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const response = await request.json();
+        if (response.ok) {
+          toast.success(
+            <MsgToast
+              url={`https://huggingface.co/spaces/${response.path ?? path}`}
+            />,
+            {
+              autoClose: 10000,
+            }
+          );
+          setPath(response.path);
+        } else {
+          console.error("Error response:", response);
+          toast.error(response.message || "Error al desplegar el espacio");
+        }
       } else {
-        toast.error(response.message);
+        // Si no es JSON, mostrar el texto de la respuesta
+        const textResponse = await request.text();
+        console.error("Error: Respuesta no es JSON", textResponse);
+
+        if (textResponse.includes("<!DOCTYPE html>")) {
+          toast.error("Error: El servidor devolvió HTML en lugar de JSON. Verifica tu token de Hugging Face.");
+        } else {
+          toast.error(`Error: ${request.status} - ${request.statusText}`);
+        }
       }
     } catch (err: any) {
-      toast.error(err.message);
+      console.error("Error al desplegar:", err);
+      toast.error(err.message || "Error al desplegar el espacio");
     } finally {
       setLoading(false);
       setOpen(false);

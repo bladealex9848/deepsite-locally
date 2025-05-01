@@ -48,7 +48,7 @@ function LocalProjects({ html, setHtml, onClose }: LocalProjectsProps) {
     try {
       const response = await fetch("/api/local-projects");
       const data = await response.json();
-      
+
       if (data.ok) {
         setProjects(data.projects);
       } else {
@@ -68,7 +68,7 @@ function LocalProjects({ html, setHtml, onClose }: LocalProjectsProps) {
     try {
       const response = await fetch(`/api/local-projects/${projectId}/files`);
       const data = await response.json();
-      
+
       if (data.ok) {
         setProjectFiles(data.files);
         setView("files");
@@ -87,19 +87,35 @@ function LocalProjects({ html, setHtml, onClose }: LocalProjectsProps) {
   const loadProject = async (projectId: string) => {
     setLoading(true);
     try {
+      console.log("Cargando proyecto con ID:", projectId);
+
       const response = await fetch(`/api/local-projects/${projectId}`);
-      const data = await response.json();
-      
-      if (data.ok && data.project) {
-        setHtml(data.project.html);
-        toast.success("Proyecto cargado con éxito");
-        onClose();
+      console.log("Respuesta del servidor:", response.status, response.statusText);
+
+      // Verificar si la respuesta es JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        console.log("Datos recibidos:", data);
+
+        if (data.ok && data.project) {
+          console.log("HTML recibido (longitud):", data.project.html.length);
+          setHtml(data.project.html);
+          toast.success("Proyecto cargado con éxito");
+          onClose();
+        } else {
+          console.error("Error en la respuesta:", data);
+          toast.error(data.message || "Error al cargar el proyecto");
+        }
       } else {
-        toast.error(data.message || "Error al cargar el proyecto");
+        // Si no es JSON, mostrar el texto de la respuesta
+        const textResponse = await response.text();
+        console.error("Error: Respuesta no es JSON", textResponse);
+        toast.error(`Error: ${response.status} - ${response.statusText}`);
       }
     } catch (error) {
       console.error("Error al cargar el proyecto:", error);
-      toast.error("Error al cargar el proyecto");
+      toast.error("Error al cargar el proyecto. Revisa la consola para más detalles.");
     } finally {
       setLoading(false);
     }
@@ -124,9 +140,9 @@ function LocalProjects({ html, setHtml, onClose }: LocalProjectsProps) {
           title: saveTitle,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.ok) {
         toast.success("Proyecto guardado con éxito");
         setSaveTitle("");

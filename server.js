@@ -368,7 +368,7 @@ app.post("/api/ask-ai", async (req, res) => {
         res.end();
       }
     }
-  } else if (selectedProvider.id === "openai") {
+  } else if (selectedProvider.id === "openai" || selectedProvider.id === "deepseek" || selectedProvider.id === "openrouter") {
     try {
       const response = await fetch(`${selectedProvider.base_url}/chat/completions`, {
         method: "POST",
@@ -410,7 +410,7 @@ app.post("/api/ask-ai", async (req, res) => {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorBody}`);
+        throw new Error(`API Error (${selectedProvider.name}): ${response.status} - ${errorBody}`);
       }
 
       const reader = response.body.getReader();
@@ -425,8 +425,12 @@ app.post("/api/ask-ai", async (req, res) => {
 
         for (const line of lines) {
           try {
-            const message = JSON.parse(line.replace('data: ', ''));
-            if (message.choices && message.choices[0].delta.content) {
+            // Eliminar 'data: ' si existe y manejar el caso de 'data: [DONE]'
+            const cleanLine = line.replace('data: ', '');
+            if (cleanLine === '[DONE]') continue;
+
+            const message = JSON.parse(cleanLine);
+            if (message.choices && message.choices[0].delta && message.choices[0].delta.content) {
               res.write(message.choices[0].delta.content);
             }
           } catch (e) {

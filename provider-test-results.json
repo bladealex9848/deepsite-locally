@@ -1,0 +1,65 @@
+{
+  "timestamp": "2025-05-01T17:57:07.321Z",
+  "results": [
+    {
+      "success": false,
+      "provider": "OpenAI (gpt-4o)",
+      "model": "gpt-4o",
+      "error": "{\n    \"error\": {\n        \"message\": \"Incorrect API key provided: YOUR_API*****HERE. You can find your API key at https://platform.openai.com/account/api-keys.\",\n        \"type\": \"invalid_request_error\",\n        \"param\": null,\n        \"code\": \"invalid_api_key\"\n    }\n}\n"
+    },
+    {
+      "success": false,
+      "provider": "OpenAI (gpt-4.1-nano)",
+      "model": "gpt-4.1-nano",
+      "error": "{\n    \"error\": {\n        \"message\": \"Incorrect API key provided: YOUR_API*****HERE. You can find your API key at https://platform.openai.com/account/api-keys.\",\n        \"type\": \"invalid_request_error\",\n        \"param\": null,\n        \"code\": \"invalid_api_key\"\n    }\n}\n"
+    },
+    {
+      "success": true,
+      "provider": "Ollama",
+      "model": "qwen3:4b",
+      "response": "<think>\nOkay, the user greeted me in Spanish with \"Hola, ¿cómo estás?\" and asked me to respond briefly in Spanish. I need to make sure my reply is polite and to the point.\n\nFirst, I should acknowledge their greeting"
+    },
+    {
+      "success": true,
+      "provider": "DeepSeek",
+      "model": "deepseek-chat",
+      "response": "¡Hola! Estoy bien, gracias. ¿Y tú? 😊"
+    },
+    {
+      "success": true,
+      "provider": "OpenRouter",
+      "model": "deepseek/deepseek-chat-v3-0324:free",
+      "response": "🇲🇽 ¡Hola! Estoy bien, gracias. ¿Y tú? 😊  \n\n*(Respuesta breve en español, como solicitaste)*"
+    },
+    {
+      "success": true,
+      "provider": "Together AI",
+      "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      "response": " Hola! Estoy muy bien, gracias. ¿En qué puedo ayudarte hoy?"
+    },
+    {
+      "success": true,
+      "provider": "Groq",
+      "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+      "response": "Estoy bien, gracias. ¿Y tú?"
+    },
+    {
+      "success": true,
+      "provider": "DeepInfra",
+      "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
+      "response": "Hola, bien. Gracias por preguntar."
+    },
+    {
+      "success": true,
+      "provider": "Mistral",
+      "model": "codestral-latest",
+      "response": "¡Hola! Estoy bien, gracias. ¿Y tú? ¿Cómo estás?"
+    },
+    {
+      "success": true,
+      "provider": "Cohere",
+      "model": "command-r-plus",
+      "response": "Hola, estoy bien, gracias. ¿Y tú?"
+    }
+  ]
+}

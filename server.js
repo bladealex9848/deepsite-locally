@@ -17,6 +17,7 @@ import bodyParser from "body-parser";
 import checkUser from "./middlewares/checkUser.js";
 import { PROVIDERS } from "./utils/providers.js";
 import { COLORS } from "./utils/colors.js";
+import config from "./utils/config.js";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -430,6 +431,19 @@ app.post("/api/ask-ai", async (req, res) => {
     selectedProvider.id === "mistral" ||
     selectedProvider.id === "cohere"
   ) {
+    console.log(`Usando proveedor: ${selectedProvider.name} (${selectedProvider.id})`);
+    console.log(`URL base: ${selectedProvider.base_url}`);
+    console.log(`Modelo: ${selectedProvider.model}`);
+
+    // Verificar si la API key está disponible
+    if (selectedProvider.api_key) {
+      const apiKeyPrefix = selectedProvider.api_key.substring(0, 10);
+      const apiKeySuffix = selectedProvider.api_key.substring(selectedProvider.api_key.length - 5);
+      console.log(`API Key: ${apiKeyPrefix}...${apiKeySuffix} (longitud: ${selectedProvider.api_key.length})`);
+    } else {
+      console.log(`API Key: No disponible`);
+    }
+
     try {
       const response = await fetch(`${selectedProvider.base_url}/chat/completions`, {
         method: "POST",

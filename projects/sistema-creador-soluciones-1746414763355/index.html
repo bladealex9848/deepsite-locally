@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Creador de Soluciones con IA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  
+  <style>
+    .gradient-bg {
+      background: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+    }
+    .sidebar-item {
+      @apply flex items-center p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
+    }
+    .sidebar-item.active {
+      @apply bg-blue-100 text-blue-600 dark:bg-blue-800 dark:text-white;
+    }
+    .step-circle {
+      @apply w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-600 font-medium;
+    }
+    .step-circle.active {
+      @apply bg-blue-600 text-white;
+    }
+    .step-line {
+      @apply flex-1 h-1 bg-gray-200 mx-2;
+    }
+    .step-line.active {
+      @apply bg-blue-600;
+    }
+    .document-card {
+      @apply border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer;
+    }
+    .agent-card {
+      @apply border rounded-lg p-4 hover:shadow-md transition-shadow;
+    }
+    .template-card {
+      @apply border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer;
+    }
+    .task-card {
+      @apply border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer;
+    }
+    .history-item {
+      @apply border-b py-3 hover:bg-gray-50 transition-colors cursor-pointer;
+    }
+    .editor-toolbar {
+      @apply border-b p-2 bg-gray-50 flex flex-wrap gap-2;
+    }
+    .editor-content {
+      @apply border p-4 min-h-[400px] bg-white;
+    }
+    .variable-tag {
+      @apply bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm flex items-center gap-1;
+    }
+    .specialty-tag {
+      @apply bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm flex items-center gap-1;
+    }
+    .workflow-step {
+      @apply border rounded p-3 bg-gray-50 mb-2 flex justify-between items-center;
+    }
+    .dark .gradient-bg {
+      background: linear-gradient(135deg, #4B5563 0%, #1F2937 100%);
+    }
+    .dark .sidebar-item.active {
+      @apply bg-gray-700 text-white;
+    }
+    .dark .document-card, .dark .agent-card, .dark .template-card, .dark .task-card {
+      @apply bg-gray-800 border-gray-700 hover:bg-gray-700;
+    }
+    .dark .history-item {
+      @apply border-gray-700 hover:bg-gray-800;
+    }
+    .dark .editor-toolbar {
+      @apply bg-gray-800 border-gray-700;
+    }
+    .dark .editor-content {
+      @apply bg-gray-900 border-gray-700 text-white;
+    }
+    .dark .workflow-step {
+      @apply bg-gray-800 border-gray-700;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <!-- Navbar -->
+  <nav class="gradient-bg text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="bi bi-robot text-2xl"></i>
+        <span class="text-xl font-bold">Sistema IA</span>
+      </div>
+      <div id="user-dropdown" class="hidden">
+        <div class="relative">
+          <button id="user-menu-button" class="flex items-center space-x-2">
+            <i class="bi bi-person-circle text-xl"></i>
+            <span id="username-display">Usuario</span>
+            <i class="bi bi-chevron-down"></i>
+          </button>
+          <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
+            <a href="#" id="nav-profile" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Mi Perfil</a>
+            <a href="#" id="nav-admin" class="hidden block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Administración</a>
+            <div class="border-t border-gray-200 dark:border-gray-700"></div>
+            <a href="#" id="nav-logout" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">Cerrar Sesión</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Login Container -->
+  <div id="login-container" class="container mx-auto mt-10 max-w-md">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+      <div class="gradient-bg p-6 text-white text-center">
+        <h1 class="text-2xl font-bold">Sistema Creador de Soluciones</h1>
+        <p class="mt-2">Con Inteligencia Artificial Integrada</p>
+      </div>
+      <div class="p-6">
+        <form id="login-form">
+          <div class="mb-4">
+            <label for="username" class="block text-sm font-medium mb-2">Usuario</label>
+            <input type="text" id="username" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+          </div>
+          <div class="mb-6">
+            <label for="password" class="block text-sm font-medium mb-2">Contraseña</label>
+            <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+            Ingresar
+          </button>
+        </form>
+        <div class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p>Credenciales de prueba: usuario/user123 o admin/admin123</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content (hidden initially) -->
+  <div id="main-content" class="hidden container mx-auto flex">
+    <!-- Sidebar -->
+    <div id="sidebar" class="w-64 p-4 hidden md:block">
+      <div class="space-y-2">
+        <a href="#" id="nav-dashboard" class="sidebar-item active">
+          <i class="bi bi-speedometer2 mr-3"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" id="nav-document" class="sidebar-item">
+          <i class="bi bi-file-earmark-plus mr-3"></i>
+          <span>Crear Documento</span>
+        </a>
+        <a href="#" id="nav-templates" class="sidebar-item">
+          <i class="bi bi-collection mr-3"></i>
+          <span>Plantillas</span>
+        </a>
+        <a href="#" id="nav-agents" class="sidebar-item">
+          <i class="bi bi-robot mr-3"></i>
+          <span>Agentes</span>
+        </a>
+        <a href="#" id="nav-tasks" class="sidebar-item">
+          <i class="bi bi-list-task mr-3"></i>
+          <span>Tareas</span>
+        </a>
+        <a href="#" id="nav-history" class="sidebar-item">
+          <i class="bi bi-clock-history mr-3"></i>
+          <span>Historial</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="flex-1 p-6">
+      <!-- Dashboard -->
+      <div id="dashboard-container">
+        <h2 class="text-2xl font-bold mb-6">Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 dark:text-gray-400">Documentos Creados</p>
+                <h3 class="text-3xl font-bold">24</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Últimos 30 días</p>
+              </div>
+              <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
+                <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-300 text-xl"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 dark:text-gray-400">Tareas Completadas</p>
+                <h3 class="text-3xl font-bold">18</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Últimos 30 días</p>
+              </div>
+              <div class="bg-green-100 dark:bg-green-900 p-3 rounded-full">
+                <i class="bi bi-check-circle text-green-600 dark:text-green-300 text-xl"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-gray-500 dark:text-gray-400">Tiempo Ahorrado</p>
+                <h3 class="text-3xl font-bold">42h</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Este mes</p>
+              </div>
+              <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-full">
+                <i class="bi bi-clock-history text-purple-600 dark:text-purple-300 text-xl"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Uso por Proveedor</h3>
+            <canvas id="providersChart" height="250"></canvas>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold mb-4">Actividad Reciente</h3>
+            <div class="space-y-4">
+              <div class="flex items-start">
+                <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                  <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-300"></i>
+                </div>
+                <div>
+                  <p class="font-medium">Contrato para Cliente ABC</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Completado hace 2 horas</p>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <div class="bg-green-100 dark:bg-green-900 p-2 rounded-full mr-3">
+                  <i class="bi bi-check-circle text-green-600 dark:text-green-300"></i>
+                </div>
+                <div>
+                  <p class="font-medium">Informe Técnico XYZ</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Completado ayer</p>
+                </div>
+              </div>
+              <div class="flex items-start">
+                <div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-full mr-3">
+                  <i class="bi bi-robot text-purple-600 dark:text-purple-300"></i>
+                </div>
+                <div>
+                  <p class="font-medium">Nuevo Agente Configurado</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Hace 3 días</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Creator -->
+      <div id="document-creator-container" class="hidden">
+        <h2 class="text-2xl font-bold mb-6">Crear Nuevo Documento</h2>
+        
+        <!-- Stepper -->
+        <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center">
+            <div class="step-circle active">1</div>
+            <div class="step-line"></div>
+            <div class="step-circle">2</div>
+            <div class="step-line"></div>
+            <div class="step-circle">3</div>
+            <div class="step-line"></div>
+            <div class="step-circle">4</div>
+            <div class="step-line"></div>
+            <div class="step-circle">5</div>
+            <div class="step-line"></div>
+            <div class="step-circle">6</div>
+          </div>
+        </div>
+
+        <!-- Step 1: Request Input -->
+        <div id="step-1" class="step-container">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">1. Describe tu solicitud</h3>
+            <div class="mb-4">
+              <label for="requestTitle" class="block text-sm font-medium mb-2">Título</label>
+              <input type="text" id="requestTitle" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: Contrato de servicios para cliente ABC">
+            </div>
+            <div class="mb-4">
+              <label for="requestContent" class="block text-sm font-medium mb-2">Detalles</label>
+              <textarea id="requestContent" rows="6" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Describe con detalle lo que necesitas..."></textarea>
+            </div>
+            <div class="mb-4">
+              <label for="requestCategory" class="block text-sm font-medium mb-2">Categoría</label>
+              <select id="requestCategory" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option value="">Auto-detectar categoría</option>
+                <option value="1">Documentos Legales</option>
+                <option value="2">Informes Técnicos</option>
+                <option value="3">Respuestas a Clientes</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex justify-end">
+            <button id="next-step-1" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors">
+              Siguiente
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 2: Analysis -->
+        <div id="step-2" class="step-container hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">2. Análisis de Contenido</h3>
+            <div id="analysis-content" class="text-center py-10">
+              <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p>Analizando tu solicitud...</p>
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <button id="prev-step-2" class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+              Anterior
+            </button>
+            <button id="next-step-2" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors hidden">
+              Siguiente
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Template Selection -->
+        <div id="step-3" class="step-container hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">3. Selecciona una Plantilla</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="template-card">
+                <div class="flex items-start">
+                  <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Contrato de Servicios</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Legales</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">cliente</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">servicio</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">monto</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="template-card">
+                <div class="flex items-start">
+                  <div class="bg-green-100 dark:bg-green-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-file-earmark-text text-green-600 dark:text-green-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Acuerdo de Confidencialidad</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Legales</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">partes</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">vigencia</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="template-card">
+                <div class="flex items-start">
+                  <div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-file-earmark-text text-purple-600 dark:text-purple-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Informe Técnico</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Informes Técnicos</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">proyecto</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">fecha</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">resultados</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="template-card">
+                <div class="flex items-start">
+                  <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-file-earmark-text text-yellow-600 dark:text-yellow-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Respuesta a Cliente</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Respuestas a Clientes</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">cliente</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">consulta</span>
+                      <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">solución</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <button id="prev-step-3" class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+              Anterior
+            </button>
+            <button id="next-step-3" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors">
+              Siguiente
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 4: Variables -->
+        <div id="step-4" class="step-container hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">4. Completa las Variables</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium mb-2">Nombre del Cliente</label>
+                <input type="text" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: ABC Corp">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Servicio</label>
+                <input type="text" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: Desarrollo de Software">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Monto</label>
+                <input type="text" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: $5,000 USD">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Fecha de Inicio</label>
+                <input type="date" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-2">Términos de Pago</label>
+                <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                  <option>50% al inicio, 50% al finalizar</option>
+                  <option>100% al inicio</option>
+                  <option>100% al finalizar</option>
+                  <option>Personalizado...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <button id="prev-step-4" class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+              Anterior
+            </button>
+            <button id="next-step-4" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors">
+              Siguiente
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 5: Agent Selection -->
+        <div id="step-5" class="step-container hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">5. Selecciona un Agente</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="agent-card">
+                <div class="flex items-start">
+                  <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-robot text-blue-600 dark:text-blue-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Asistente Legal</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">OpenAI - GPT-4</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">contratos</span>
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">legal</span>
+                    </div>
+                    <div class="mt-3">
+                      <div class="flex items-center justify-between text-sm mb-1">
+                        <span>Temperatura:</span>
+                        <span class="font-medium">0.7</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: 70%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="agent-card">
+                <div class="flex items-start">
+                  <div class="bg-green-100 dark:bg-green-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-robot text-green-600 dark:text-green-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Asistente Técnico</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Anthropic - Claude 2</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">informes</span>
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">técnico</span>
+                    </div>
+                    <div class="mt-3">
+                      <div class="flex items-center justify-between text-sm mb-1">
+                        <span>Temperatura:</span>
+                        <span class="font-medium">0.5</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-green-600 h-1.5 rounded-full" style="width: 50%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="agent-card">
+                <div class="flex items-start">
+                  <div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-robot text-purple-600 dark:text-purple-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Asistente Comercial</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Mistral - Large</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">clientes</span>
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">comunicación</span>
+                    </div>
+                    <div class="mt-3">
+                      <div class="flex items-center justify-between text-sm mb-1">
+                        <span>Temperatura:</span>
+                        <span class="font-medium">0.8</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-purple-600 h-1.5 rounded-full" style="width: 80%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="agent-card">
+                <div class="flex items-start">
+                  <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-full mr-3">
+                    <i class="bi bi-robot text-yellow-600 dark:text-yellow-300"></i>
+                  </div>
+                  <div>
+                    <h4 class="font-medium">Asistente General</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">OpenAI - GPT-3.5</p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">general</span>
+                      <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">rápido</span>
+                    </div>
+                    <div class="mt-3">
+                      <div class="flex items-center justify-between text-sm mb-1">
+                        <span>Temperatura:</span>
+                        <span class="font-medium">0.9</span>
+                      </div>
+                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                        <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 90%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <button id="prev-step-5" class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+              Anterior
+            </button>
+            <button id="next-step-5" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors">
+              Siguiente
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 6: Generation -->
+        <div id="step-6" class="step-container hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">6. Generando tu Documento</h3>
+            <div id="generation-content" class="text-center py-10">
+              <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p>Generando tu documento con IA...</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Esto puede tomar unos segundos</p>
+            </div>
+          </div>
+          <div class="flex justify-between">
+            <button id="prev-step-6" class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+              Anterior
+            </button>
+            <button id="finish-step" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors hidden">
+              Finalizar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Templates -->
+      <div id="templates-container" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Plantillas</h2>
+          <button id="new-template-btn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center">
+            <i class="bi bi-plus-lg mr-2"></i> Nueva Plantilla
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="template-card">
+            <div class="flex items-start">
+              <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                <i class="bi bi-file-earmark-text text-blue-600 dark:text-blue-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Contrato de Servicios</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Legales</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="variable-tag">cliente</span>
+                  <span class="variable-tag">servicio</span>
+                  <span class="variable-tag">monto</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="template-card">
+            <div class="flex items-start">
+              <div class="bg-green-100 dark:bg-green-900 p-2 rounded-full mr-3">
+                <i class="bi bi-file-earmark-text text-green-600 dark:text-green-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Acuerdo de Confidencialidad</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Legales</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="variable-tag">partes</span>
+                  <span class="variable-tag">vigencia</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="template-card">
+            <div class="flex items-start">
+              <div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-full mr-3">
+                <i class="bi bi-file-earmark-text text-purple-600 dark:text-purple-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Informe Técnico</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Informes Técnicos</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="variable-tag">proyecto</span>
+                  <span class="variable-tag">fecha</span>
+                  <span class="variable-tag">resultados</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="template-card">
+            <div class="flex items-start">
+              <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-full mr-3">
+                <i class="bi bi-file-earmark-text text-yellow-600 dark:text-yellow-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Respuesta a Cliente</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Respuestas a Clientes</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="variable-tag">cliente</span>
+                  <span class="variable-tag">consulta</span>
+                  <span class="variable-tag">solución</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="template-card">
+            <div class="flex items-start">
+              <div class="bg-red-100 dark:bg-red-900 p-2 rounded-full mr-3">
+                <i class="bi bi-file-earmark-text text-red-600 dark:text-red-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Propuesta Comercial</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Comerciales</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="variable-tag">cliente</span>
+                  <span class="variable-tag">servicio</span>
+                  <span class="variable-tag">precio</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="template-card">
+            <div class="flex items-start">
+              <div class="bg-indigo-100 dark:bg-indigo-900 p-2 rounded-full mr-3">
+                <i class="bi bi-file-earmark-text text-indigo-600 dark:text-indigo-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Acta de Reunión</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Corporativos</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="variable-tag">participantes</span>
+                  <span class="variable-tag">temas</span>
+                  <span class="variable-tag">acuerdos</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Template Editor (hidden by default) -->
+        <div id="template-editor-container" class="hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">Editor de Plantilla</h3>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Nombre</label>
+              <input type="text" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Nombre de la plantilla">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Categoría</label>
+              <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option>Documentos Legales</option>
+                <option>Informes Técnicos</option>
+                <option>Respuestas a Clientes</option>
+                <option>Documentos Comerciales</option>
+                <option>Documentos Corporativos</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Contenido</label>
+              <div class="editor-toolbar">
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-type-bold"></i></button>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-type-italic"></i></button>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-type-underline"></i></button>
+                <div class="border-l border-gray-300 dark:border-gray-600 mx-2 h-6"></div>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-list-ul"></i></button>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-list-ol"></i></button>
+                <div class="border-l border-gray-300 dark:border-gray-600 mx-2 h-6"></div>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-link-45deg"></i></button>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-image"></i></button>
+                <div class="border-l border-gray-300 dark:border-gray-600 mx-2 h-6"></div>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-code"></i></button>
+                <button class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-table"></i></button>
+              </div>
+              <div class="editor-content" contenteditable="true">
+                <h1>Título del Documento</h1>
+                <p>Este es un ejemplo de contenido de plantilla. Puedes usar variables como {{nombre_cliente}} que serán reemplazadas cuando se genere el documento.</p>
+                <p>Otras variables disponibles:</p>
+                <ul>
+                  <li>{{fecha_actual}}</li>
+                  <li>{{nombre_empresa}}</li>
+                  <li>{{servicio}}</li>
+                </ul>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Variables</label>
+              <div id="variables-list" class="flex flex-wrap gap-2 mb-2">
+                <span class="variable-tag">nombre_cliente <i class="bi bi-x"></i></span>
+                <span class="variable-tag">fecha_actual <i class="bi bi-x"></i></span>
+                <span class="variable-tag">nombre_empresa <i class="bi bi-x"></i></span>
+                <span class="variable-tag">servicio <i class="bi bi-x"></i></span>
+              </div>
+              <div class="flex">
+                <input type="text" class="flex-1 px-3 py-2 border rounded-l-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Nueva variable">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg transition-colors">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+              <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors">
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agents -->
+      <div id="agents-container" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Agentes de IA</h2>
+          <button id="new-agent-btn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center">
+            <i class="bi bi-plus-lg mr-2"></i> Nuevo Agente
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="agent-card">
+            <div class="flex items-start">
+              <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                <i class="bi bi-robot text-blue-600 dark:text-blue-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Asistente Legal</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">OpenAI - GPT-4</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="specialty-tag">contratos <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">legal <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">documentos <i class="bi bi-x"></i></span>
+                </div>
+                <div class="mt-3">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Temperatura:</span>
+                    <span class="font-medium">0.7</span>
+                  </div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div class="bg-blue-600 h-1.5 rounded-full" style="width: 70%"></div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Tokens máximos:</span>
+                    <span class="font-medium">2000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="flex items-start">
+              <div class="bg-green-100 dark:bg-green-900 p-2 rounded-full mr-3">
+                <i class="bi bi-robot text-green-600 dark:text-green-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Asistente Técnico</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Anthropic - Claude 2</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="specialty-tag">informes <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">técnico <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">datos <i class="bi bi-x"></i></span>
+                </div>
+                <div class="mt-3">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Temperatura:</span>
+                    <span class="font-medium">0.5</span>
+                  </div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div class="bg-green-600 h-1.5 rounded-full" style="width: 50%"></div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Tokens máximos:</span>
+                    <span class="font-medium">4000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="flex items-start">
+              <div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-full mr-3">
+                <i class="bi bi-robot text-purple-600 dark:text-purple-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Asistente Comercial</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Mistral - Large</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="specialty-tag">clientes <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">comunicación <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">ventas <i class="bi bi-x"></i></span>
+                </div>
+                <div class="mt-3">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Temperatura:</span>
+                    <span class="font-medium">0.8</span>
+                  </div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div class="bg-purple-600 h-1.5 rounded-full" style="width: 80%"></div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Tokens máximos:</span>
+                    <span class="font-medium">3000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="flex items-start">
+              <div class="bg-yellow-100 dark:bg-yellow-900 p-2 rounded-full mr-3">
+                <i class="bi bi-robot text-yellow-600 dark:text-yellow-300"></i>
+              </div>
+              <div>
+                <h4 class="font-medium">Asistente General</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">OpenAI - GPT-3.5</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="specialty-tag">general <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">rápido <i class="bi bi-x"></i></span>
+                  <span class="specialty-tag">multipropósito <i class="bi bi-x"></i></span>
+                </div>
+                <div class="mt-3">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Temperatura:</span>
+                    <span class="font-medium">0.9</span>
+                  </div>
+                  <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                    <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 90%"></div>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <div class="flex items-center justify-between text-sm mb-1">
+                    <span>Tokens máximos:</span>
+                    <span class="font-medium">1500</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agent Editor (hidden by default) -->
+        <div id="agent-editor-container" class="hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">Configuración de Agente</h3>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Nombre</label>
+              <input type="text" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Nombre del agente">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Proveedor</label>
+              <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option>OpenAI</option>
+                <option>Anthropic</option>
+                <option>Mistral</option>
+                <option>Google</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Modelo</label>
+              <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option>GPT-4</option>
+                <option>GPT-3.5 Turbo</option>
+                <option>Claude 2</option>
+                <option>Mistral Large</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Especialidades</label>
+              <div id="specialties-list" class="flex flex-wrap gap-2 mb-2">
+                <span class="specialty-tag">legal <i class="bi bi-x"></i></span>
+                <span class="specialty-tag">contratos <i class="bi bi-x"></i></span>
+              </div>
+              <div class="flex">
+                <input type="text" class="flex-1 px-3 py-2 border rounded-l-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Nueva especialidad">
+                <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-r-lg transition-colors">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Parámetros</label>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium mb-1">Temperatura</label>
+                  <input type="range" min="0" max="1" step="0.1" value="0.7" class="w-full">
+                  <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>0.0</span>
+                    <span>0.5</span>
+                    <span>1.0</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Tokens máximos</label>
+                  <input type="number" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" value="2000">
+                </div>
+              </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+              <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-6 rounded-lg transition-colors">
+                Cancelar
+              </button>
+              <button class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition-colors">
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div id="tasks-container" class="hidden">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-bold">Tareas</h2>
+          <button id="new-task-btn" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center">
+            <i class="bi bi-plus-lg mr-2"></i> Nueva Tarea
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 mb-8">
+          <div class="task-card">
+            <div class="flex items-start">
+              <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-full mr-3">
+                <i class="bi bi-list-task text-blue-600 dark:text-blue-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-medium">Generar Contrato de Servicios</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Documentos Legales</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Contrato de Servicios</span>
+                  <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">Asistente Legal</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">Activa</span>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Última ejecución: 15/03/2025</p>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+              <button class="text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-600 dark:text-green-300 py-1 px-3 rounded-lg transition-colors">
+                Ejecutar
+              </button>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="flex items-start">
+              <div class="bg-green-100 dark:bg-green-900 p-2 rounded-full mr-3">
+                <i class="bi bi-list-task text-green-600 dark:text-green-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-medium">Crear Informe Técnico</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Informes Técnicos</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Informe Técnico</span>
+                  <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">Asistente Técnico</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">Activa</span>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Última ejecución: 14/03/2025</p>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+              <button class="text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-600 dark:text-green-300 py-1 px-3 rounded-lg transition-colors">
+                Ejecutar
+              </button>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="flex items-start">
+              <div class="bg-purple-100 dark:bg-purple-900 p-2 rounded-full mr-3">
+                <i class="bi bi-list-task text-purple-600 dark:text-purple-300"></i>
+              </div>
+              <div class="flex-1">
+                <h4 class="font-medium">Responder Consulta Cliente</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Respuestas a Clientes</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Respuesta Cliente</span>
+                  <span class="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">Asistente Comercial</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">Pausada</span>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Última ejecución: 10/03/2025</p>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-2">
+              <button class="text-sm bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1 px-3 rounded-lg transition-colors">
+                Editar
+              </button>
+              <button class="text-sm bg-red-100 hover:bg-red-200 dark:bg-red-900 dark:hover:bg-red-800 text-red-600 dark:text-red-300 py-1 px-3 rounded-lg transition-colors">
+                Eliminar
+              </button>
+              <button class="text-sm bg-green-100 hover:bg-green-200 dark:bg-green-900 dark:hover:bg-green-800 text-green-600 dark:text-green-300 py-1 px-3 rounded-lg transition-colors">
+                Ejecutar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Task Editor (hidden by default) -->
+        <div id="task-editor-container" class="hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+            <h3 class="text-xl font-semibold mb-4">Configuración de Tarea</h3>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Nombre</label>
+              <input type="text" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Nombre de la tarea">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Descripción</label>
+              <textarea rows="3" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="Descripción de la tarea"></textarea>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Categoría</label>
+              <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option>Documentos Legales</option>
+                <option>Informes Técnicos</option>
+                <option>Respuestas a Clientes</option>
+                <option>Documentos Comerciales</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Plantilla</label>
+              <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option>Contrato de Servicios</option>
+                <option>Acuerdo de Confidencialidad</option>
+                <option>Informe Técnico</option>
+                <option>Respuesta a Cliente</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Agente</label>
+              <select class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                <option>Asistente Legal</option>
+                <option>Asistente Técnico</option>
+                <option>Asistente Comercial</option>
+                <option>Asistente General</option>
+              </select>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium mb-2">Flujo de Trabajo</label>
+              <div id="workflow-steps" class="space-y-2">
+                <div class="workflow-step">
+                  <span>1. Recepción de solicitud</span>
+                  <div class="flex space-x-2">
+                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="bi bi-arrow-up"></i></button>
+                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="bi bi-arrow-down"></i></button>
+                    <button class="text-red-500 hover:text-red-700"><i class="bi bi-trash"></i></button>
+                  </div>
+                </div>
+                <div class="workflow-step">
+                  <span>2. Análisis de contexto</span>
+                  <div class="flex space-x-2">
+                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="bi bi-arrow-up"></i></button>
+                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="bi bi-arrow-down"></i></button>
+                    <button class="text-red-500 hover:text-red-700"><i class="bi bi-trash"></i></button>
+                  </div>
+                </div>
+                <div class="workflow-step">
+                  <span>3. Generación de contenido</span>
+                  <div class="flex space-x-2">
+                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"><i class="bi bi-arrow-up"></i></button>
+                    <button class="text-gray-500 hover:text-gray-700 dark:hover:text-gray
+</html>
